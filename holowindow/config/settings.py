@@ -34,6 +34,13 @@ class TrackingSettings:
     max_head_z: float = 0.9
     max_rotation_degrees: float = 35.0
     calibration_file: Path = Path("holowindow_calibration.json")
+    face_landmarker_model_path: Path | None = None
+    model_cache_dir: Path = field(default_factory=lambda: Path.home() / ".cache" / "holowindow")
+    auto_download_face_model: bool = True
+    face_landmarker_model_url: str = (
+        "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
+        "face_landmarker/float16/latest/face_landmarker.task"
+    )
 
 
 @dataclass(slots=True)
@@ -58,4 +65,3 @@ class AppSettings:
     camera: CameraSettings = field(default_factory=CameraSettings)
     tracking: TrackingSettings = field(default_factory=TrackingSettings)
     render: RenderSettings = field(default_factory=RenderSettings)
-

@@ -11,6 +11,11 @@ import numpy as np
 
 from holowindow.config.settings import CameraSettings
 
+try:
+    cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_ERROR)
+except AttributeError:
+    pass
+
 
 @dataclass(frozen=True, slots=True)
 class CameraInfo:
@@ -182,4 +187,3 @@ class CameraManager:
             float(np.mean(np.abs(g.astype(np.int16) - r.astype(np.int16)))),
         )
         return "IR-like" if channel_delta < 2.0 else "RGB"
-
