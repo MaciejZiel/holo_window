@@ -1,26 +1,42 @@
 # HoloWindow
 
-HoloWindow is a Python desktop application that turns a normal flat monitor into a head-tracked 3D display simulator. It treats the screen as a fixed physical window and uses webcam-based head pose to shift a real-time 3D camera, producing parallax that makes the rendered scene feel like it exists behind the display.
+HoloWindow is an experimental Python desktop application that tries to turn a normal flat monitor into a head-tracked 3D “window”.
 
-The core effect uses face/head landmarks, not pupil or iris tracking, so it is designed to work for users wearing glasses. Eye tracking is intentionally not part of the main pipeline.
+The idea is simple: treat the monitor as a fixed physical window, track the user’s head with a webcam, and change the rendered 3D perspective as the user moves. In theory this creates a parallax-based pseudo-holographic effect, where objects appear to sit behind the screen.
 
-## What It Does
+In practice, this repository is best understood as a technical prototype and an honest failed/unfinished attempt rather than a polished illusion. It contains useful pieces of a head-tracked display pipeline, but the final effect was not convincing enough with a single ordinary laptop webcam.
 
-- Tracks one user's head position from a normal RGB webcam.
-- Also supports IR or grayscale cameras when the OS exposes them as OpenCV camera devices.
-- Lets you cycle available cameras at runtime.
-- Calibrates a neutral seated position with one key press.
-- Smooths noisy tracking and holds/eases gracefully when tracking is lost.
-- Renders three Panda3D scenes with depth layers and strong parallax:
-  - Neon Wall Portal
-  - Star Wall Tunnel
-  - Holographic Wall Gallery
+## What Was Built
 
-HoloWindow works best with one user sitting in front of one monitor, with the webcam mounted near that monitor.
+- OpenCV camera capture with camera enumeration and camera cycling.
+- Support for RGB cameras and grayscale/IR-like cameras if exposed through OpenCV.
+- MediaPipe Face Landmarker based head tracking.
+- OpenCV Haar face-box fallback if MediaPipe is unavailable.
+- Session calibration for a neutral seated pose.
+- Smoothing, short tracking-loss hold, and predictive filtering.
+- Monocular depth estimation from relative face width after calibration.
+- Panda3D real-time renderer.
+- Physical-style off-axis projection inspired by head-coupled/parallax-window demos.
+- Debug overlay with render FPS, tracking FPS, frame age, inference time, confidence, pose, and calibration state.
+- A simple `Reference Cube` scene for testing the projection.
+- A few experimental holographic/neon scenes.
+- Unit tests for calibration, smoothing, camera transforms, face-tracker helpers, and projection math.
 
-## Setup
+## What Did Not Work Well
 
-Python 3.11 or newer is recommended. The project has been validated in this workspace with Python 3.13.7.
+The core limitation is monocular tracking. With only one normal webcam, the app does not know the real 3D position of the head. It estimates:
+
+- left/right and up/down from face landmark position in the image,
+- distance from the apparent width of the face,
+- rotation from face landmarks / solvePnP.
+
+That is enough for a rough demo, but not enough for a stable, polished “holographic window” effect. The result can feel jumpy, delayed, weak, or visually wrong depending on lighting, camera quality, face angle, glasses, laptop performance, and calibration.
+
+The projection math was improved toward an off-axis physical-screen model, but the tracking signal was still not reliable enough to make the illusion feel great.
+
+## Requirements
+
+Python 3.11+ is recommended. This workspace was tested with Python 3.13.7.
 
 ```bash
 python -m venv .venv
@@ -29,13 +45,19 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Run the app:
+Run:
 
 ```bash
 python -m holowindow.main
 ```
 
-On first launch with newer MediaPipe packages, HoloWindow may download the MediaPipe Face Landmarker task model into `~/.cache/holowindow/face_landmarker.task`. Inference still runs locally. To provide your own model, set:
+On first launch, newer MediaPipe packages may download the Face Landmarker model into:
+
+```text
+~/.cache/holowindow/face_landmarker.task
+```
+
+You can provide a model manually:
 
 ```bash
 export HOLOWINDOW_FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
@@ -45,50 +67,46 @@ export HOLOWINDOW_FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
 
 - `C`: calibrate neutral head position
 - `D`: toggle debug overlay and camera preview
-- `1`, `2`, `3`: switch scenes
+- `1`: reference cube scene
+- `2`, `3`, `4`: experimental visual scenes
 - `R`: reset tracking and calibration
 - `F`: toggle fullscreen
 - `+` / `-`: increase or decrease parallax sensitivity
 - `P`: toggle off-axis projection
 - `[` / `]`: decrease or increase smoothing
-- `TAB`: switch to the next detected camera device
-- `U`: rotate the camera image 180 degrees
-- `M`: mirror the camera image horizontally
-- `V`: flip the camera image vertically
-- `ESC`: exit cleanly
-
-## Camera Selection
-
-At startup HoloWindow probes multiple OpenCV camera indices and opens the preferred/first available device. Press `TAB` to cycle through detected devices. If an IR camera appears as a normal video device, HoloWindow can use it as a grayscale or IR-like source. If the OS does not expose IR/depth hardware through OpenCV, the app cannot access that stream directly.
-
-The camera pipeline uses a low-latency background reader and keeps only the newest frame so old buffered frames do not add delay. The default capture size is `640x360` at up to `60 FPS`, with face tracking capped separately to keep rendering responsive.
-
-If your camera is mounted upside down, press `U`. If the movement feels reversed, use `M` or `V` and recalibrate with `C`.
-
-The renderer uses off-axis projection by default. That means the virtual screen plane stays fixed while the projection frustum shifts with your head position, which gives a stronger “looking through the display” effect than simply rotating or panning the camera. Use `+` if the motion still feels too subtle.
-
-## Tracking And Glasses
-
-The primary tracker uses MediaPipe face landmarks or MediaPipe Face Landmarker. It estimates head position from robust face geometry such as the nose, eye corners, mouth corners, chin, and face contour. It does not depend on pupil detection, so glasses reflections should not break the main parallax effect.
-
-If MediaPipe setup fails, HoloWindow falls back to OpenCV face-box tracking. That fallback preserves basic left/right/up/down/distance parallax, but yaw, pitch, and roll are limited.
+- `TAB`: switch camera device
+- `U`: rotate camera image 180 degrees
+- `M`: mirror camera image horizontally
+- `V`: flip camera image vertically
+- `ESC`: exit
 
 ## Debug Overlay
 
-Press `D` to show or hide diagnostics:
+The debug overlay is the most useful part of the app for diagnosing whether the issue is code, camera, or hardware:
 
-- FPS
-- selected camera index
-- source mode: RGB, IR-like, or unknown
+- `FPS`: Panda3D render FPS
+- `Tracking`: face-tracking update rate
+- `age`: age of the camera frame in milliseconds
+- `infer`: MediaPipe inference time in milliseconds
 - face detected / tracking lost
 - confidence
 - head x/y/z
 - yaw, pitch, roll
 - smoothing and parallax values
-- current scene
-- calibration status
+- selected camera and transform
 
-The debug camera preview is intentionally small so it does not dominate the 3D view.
+Rough interpretation:
+
+- Low render FPS means the GPU/render side is struggling.
+- Low tracking FPS means CPU/MediaPipe is struggling.
+- High frame age means camera buffering/capture latency.
+- High inference time means the tracker is too expensive for the machine.
+
+## Cameras
+
+HoloWindow works with cameras exposed through OpenCV. That includes many normal RGB webcams and some IR/grayscale cameras. It does not directly use depth data.
+
+IR/depth hardware built into laptops may not appear as a normal OpenCV device. If the OS hides that stream, HoloWindow cannot use it.
 
 ## Tests
 
@@ -96,42 +114,28 @@ The debug camera preview is intentionally small so it does not dominate the 3D v
 python -m pytest -q
 ```
 
-The current tests cover the calibration and smoothing behavior that keeps the head-tracked camera stable.
+Current tests cover:
 
-## Troubleshooting
+- calibration
+- relative monocular depth mapping
+- smoothing and prediction
+- camera transforms
+- MediaPipe timestamp helpers
+- projection math
 
-Camera not detected:
+## Lessons Learned
 
-- Check that another application is not using the camera.
-- Try `TAB` to cycle devices.
-- On Linux, confirm your user can read `/dev/video*`.
-- Some laptop IR/depth cameras are not exposed as OpenCV video devices.
+This project is a useful prototype, but a single webcam is a weak foundation for a convincing head-tracked display. For a better version, the next attempt should use at least one of:
 
-MediaPipe installation issues:
+- stereo cameras,
+- a real depth camera,
+- ArUco/AprilTag based screen/camera calibration,
+- explicit physical monitor measurements in setup UI,
+- a lower-latency native rendering/tracking stack,
+- a much simpler visual scene until tracking is objectively stable.
 
-- Upgrade pip first: `python -m pip install --upgrade pip`.
-- Use a recent Python version with available MediaPipe wheels.
-- If automatic model download is blocked, set `HOLOWINDOW_FACE_LANDMARKER_MODEL`.
+The repository is left as a record of the attempt and as a starting point for future experiments.
 
-Low FPS:
+## GitHub Short Description
 
-- Lower camera resolution in `holowindow/config/settings.py`.
-- Close other camera or GPU-heavy apps.
-- Use the debug overlay to check FPS and tracking confidence.
-
-Bad lighting:
-
-- Face tracking works best with even light from the front.
-- Avoid strong backlight from windows.
-- IR-like cameras may help if OpenCV exposes them.
-
-Glasses or reflections:
-
-- The app uses head/face geometry rather than pupils.
-- If confidence drops, reduce glare on lenses and recalibrate with `C`.
-
-Renderer/window issues:
-
-- Make sure Panda3D installed successfully.
-- On Linux, run from a desktop session with OpenGL support.
-- If the app starts but tracking is lost, it should ease back to neutral rather than crash.
+Experimental Python/Panda3D head-tracked “holographic window” prototype using OpenCV and MediaPipe. Built as an attempt to create a parallax display from a normal webcam; the pipeline works, but the final single-camera illusion was not convincing enough.
