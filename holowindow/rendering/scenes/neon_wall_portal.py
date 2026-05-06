@@ -26,6 +26,8 @@ class NeonWallPortalScene(BaseScene):
         self._floaters: list[NodePath] = []
         self._particles: list[tuple[NodePath, float, float, float]] = []
         self._ribbons: list[tuple[NodePath, float, float]] = []
+        self._portal_rings: list[tuple[NodePath, float, float]] = []
+        self._energy_rays: list[tuple[NodePath, float, float]] = []
 
     def build(self, root: NodePath) -> None:
         random.seed(7)
@@ -53,6 +55,7 @@ class NeonWallPortalScene(BaseScene):
         )
 
         self._build_surface_image(root)
+        self._build_portal_aperture(root)
         self._build_depth_objects(root)
         self._build_particle_field(root)
 
@@ -104,6 +107,42 @@ class NeonWallPortalScene(BaseScene):
             )
             panel.setR(-8 + i * 2.0)
             self._ribbons.append((panel, random.uniform(0.3, 0.8), random.uniform(0, math.tau)))
+
+    def _build_portal_aperture(self, root: NodePath) -> None:
+        ring_root = root.attachNewNode("portal-aperture")
+        ring_root.setPos(0.0, 2.42, 0.04)
+
+        for i, radius in enumerate((0.95, 1.28, 1.72, 2.25, 2.92)):
+            points = []
+            segments = 88
+            for step in range(segments + 1):
+                angle = step / segments * math.tau
+                wobble = 1.0 + math.sin(angle * (3 + i) + i) * 0.035
+                points.append(Vec3(math.cos(angle) * radius * wobble, 0.0, math.sin(angle) * radius * 0.56 * wobble))
+            ring = attach_line(
+                ring_root,
+                name=f"portal-aperture-ring-{i}",
+                points=points,
+                color=Vec4(0.0, 0.92, 1.0, 0.34 - i * 0.035),
+                thickness=1.55 - i * 0.12,
+            )
+            self._portal_rings.append((ring, 5.0 + i * 2.4, random.uniform(0, math.tau)))
+
+        for i in range(16):
+            angle = i / 16.0 * math.tau
+            inner = 0.32 + (i % 3) * 0.08
+            outer = 3.25 + (i % 4) * 0.18
+            ray = attach_line(
+                ring_root,
+                name=f"portal-energy-ray-{i}",
+                points=(
+                    Vec3(math.cos(angle) * inner, 0.0, math.sin(angle) * inner * 0.56),
+                    Vec3(math.cos(angle) * outer, random.uniform(0.35, 2.4), math.sin(angle) * outer * 0.56),
+                ),
+                color=Vec4(0.55, 0.18 + (i % 4) * 0.16, 1.0, 0.15),
+                thickness=0.78,
+            )
+            self._energy_rays.append((ray, random.uniform(0.8, 1.8), random.uniform(0, math.tau)))
 
     def _build_depth_objects(self, root: NodePath) -> None:
         colors = (
@@ -197,3 +236,10 @@ class NeonWallPortalScene(BaseScene):
         for node, speed, phase in self._ribbons:
             node.setColorScale(1.0, 1.0, 1.0, 0.65 + math.sin(elapsed * speed + phase) * 0.22)
             node.setZ(node.getZ() + math.sin(elapsed * speed + phase) * dt * 0.025)
+
+        for node, angular_speed, phase in self._portal_rings:
+            node.setR(node.getR() + dt * angular_speed)
+            node.setColorScale(1.0, 1.0, 1.0, 0.72 + math.sin(elapsed * 1.8 + phase) * 0.22)
+
+        for node, speed, phase in self._energy_rays:
+            node.setColorScale(1.0, 1.0, 1.0, 0.55 + math.sin(elapsed * speed * 3.2 + phase) * 0.38)

@@ -157,6 +157,7 @@ class HoloWindowRenderer(ShowBase):
         dt = min(0.05, max(0.0, now - self._last_time))
         self._last_time = now
 
+        self.runtime.debug_preview_enabled = self.overlay.visible
         tracking = self.runtime.update_tracking()
         self._last_tracking = tracking
         self._last_frame_bgr = self.runtime.debug_frame
@@ -305,6 +306,7 @@ class HoloWindowRuntime:
     def __init__(self, settings: AppSettings | None = None) -> None:
         self.settings = settings or AppSettings()
         self.debug_frame = None
+        self.debug_preview_enabled = True
 
         from holowindow.camera.camera_manager import CameraManager
         from holowindow.tracking.calibration import CalibrationManager
@@ -342,9 +344,11 @@ class HoloWindowRuntime:
             )
             self.debug_frame = None
         else:
-            if now - self._last_preview_at >= 0.1:
+            if self.debug_preview_enabled and now - self._last_preview_at >= 0.1:
                 self.debug_frame = self._make_debug_frame(frame.image)
                 self._last_preview_at = now
+            elif not self.debug_preview_enabled:
+                self.debug_frame = None
             if (
                 frame.timestamp == self._last_processed_frame_timestamp
                 or now - self._last_tracking_at < self._tracking_interval

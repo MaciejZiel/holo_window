@@ -21,3 +21,9 @@ def test_camera_transform_label_reflects_runtime_orientation():
     manager.toggle_flip_horizontal()
 
     assert manager.transform_label == "rotated 180, mirror"
+
+
+def test_camera_probe_can_use_fixed_index_range():
+    manager = CameraManager(CameraSettings(probe_existing_devices_only=False, probe_count=3))
+
+    assert manager._default_probe_indices() == [0, 1, 2]

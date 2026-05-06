@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from pathlib import Path
 import urllib.request
 from typing import Sequence
 
@@ -68,6 +69,8 @@ class FaceTracker:
     ) -> TrackingState:
         if frame is None:
             return TrackingState.neutral(timestamp=timestamp)
+        source_height, source_width = frame.shape[:2]
+        frame = self._resize_for_tracking(frame)
         height, width = frame.shape[:2]
 
         if not self.available:
@@ -76,8 +79,8 @@ class FaceTracker:
                 face_detected=False,
                 confidence=0.0,
                 tracking_lost=True,
-                source_width=width,
-                source_height=height,
+                source_width=source_width,
+                source_height=source_height,
                 source_mode=source_mode,
                 camera_index=camera_index,
             )
@@ -100,8 +103,8 @@ class FaceTracker:
                 face_detected=False,
                 confidence=0.0,
                 tracking_lost=True,
-                source_width=width,
-                source_height=height,
+                source_width=source_width,
+                source_height=source_height,
                 source_mode=source_mode,
                 camera_index=camera_index,
             )
@@ -112,6 +115,8 @@ class FaceTracker:
             landmarks,
             width=width,
             height=height,
+            source_width=source_width,
+            source_height=source_height,
             timestamp=timestamp,
             source_mode=source_mode,
             camera_index=camera_index,
@@ -255,6 +260,14 @@ class FaceTracker:
             return cv2.cvtColor(frame[:, :, 0], cv2.COLOR_GRAY2RGB)
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+    def _resize_for_tracking(self, frame: np.ndarray) -> np.ndarray:
+        target_width = self.settings.processing_width
+        if target_width <= 0 or frame.shape[1] <= target_width:
+            return frame
+        scale = target_width / frame.shape[1]
+        target_height = max(1, int(frame.shape[0] * scale))
+        return cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
     @staticmethod
     def _ensure_bgr(frame: np.ndarray) -> np.ndarray:
         if frame.ndim == 2:
@@ -332,6 +345,8 @@ class FaceTracker:
         *,
         width: int,
         height: int,
+        source_width: int,
+        source_height: int,
         timestamp: float,
         source_mode: str,
         camera_index: int | None,
@@ -352,15 +367,15 @@ class FaceTracker:
             timestamp=timestamp,
             face_detected=True,
             tracking_lost=False,
-            head_x=clamp((center[0] - 0.5) * 2.0, -1.5, 1.5),
-            head_y=clamp((0.5 - center[1]) * 2.0, -1.5, 1.5),
+            head_x=clamp((center[0] - self.settings.screen_center_x_in_camera_frame) * 2.0, -1.5, 1.5),
+            head_y=clamp((self.settings.screen_center_y_in_camera_frame - center[1]) * 2.0, -1.5, 1.5),
             head_z=clamp(face_width, 0.0, 1.5),
             yaw=yaw,
             pitch=pitch,
             roll=roll,
             confidence=confidence,
-            source_width=width,
-            source_height=height,
+            source_width=source_width,
+            source_height=source_height,
             source_mode=source_mode,
             camera_index=camera_index,
         )

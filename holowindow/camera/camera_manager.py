@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from threading import Event, Lock, Thread
 from typing import Iterable
 
@@ -79,7 +80,7 @@ class CameraManager:
         return ", ".join(transforms) if transforms else "normal"
 
     def enumerate_devices(self, indices: Iterable[int] | None = None) -> list[CameraInfo]:
-        probe_indices = list(indices) if indices is not None else list(range(self.settings.probe_count))
+        probe_indices = list(indices) if indices is not None else self._default_probe_indices()
         discovered: list[CameraInfo] = []
 
         for index in probe_indices:
@@ -108,6 +109,18 @@ class CameraManager:
 
         self.devices = discovered
         return discovered
+
+    def _default_probe_indices(self) -> list[int]:
+        if self.settings.probe_existing_devices_only:
+            video_devices = sorted(Path("/dev").glob("video*"))
+            indices: list[int] = []
+            for device in video_devices:
+                suffix = device.name.removeprefix("video")
+                if suffix.isdigit():
+                    indices.append(int(suffix))
+            if indices:
+                return indices[: self.settings.probe_count]
+        return list(range(self.settings.probe_count))
 
     def open(self, index: int) -> bool:
         self.release()
