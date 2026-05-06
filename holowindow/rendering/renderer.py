@@ -103,7 +103,7 @@ class HoloWindowRenderer(ShowBase):
             StarTunnelScene,
         )
 
-        return [ReferenceCubeScene(), NeonWallPortalScene(), StarTunnelScene(), HolographicGalleryScene()]
+        return [NeonWallPortalScene(), StarTunnelScene(), HolographicGalleryScene(), ReferenceCubeScene()]
 
     def _setup_camera(self) -> None:
         lens = PerspectiveLens()

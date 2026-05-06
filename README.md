@@ -18,8 +18,8 @@ In practice, this repository is best understood as a technical prototype and an 
 - Panda3D real-time renderer.
 - Physical-style off-axis projection inspired by head-coupled/parallax-window demos.
 - Debug overlay with render FPS, tracking FPS, frame age, inference time, confidence, pose, and calibration state.
-- A simple `Reference Cube` scene for testing the projection.
 - A few experimental holographic/neon scenes.
+- A simple `Reference Cube` scene for testing the projection.
 - Unit tests for calibration, smoothing, camera transforms, face-tracker helpers, and projection math.
 
 ## What Did Not Work Well
@@ -67,8 +67,8 @@ export HOLOWINDOW_FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
 
 - `C`: calibrate neutral head position
 - `D`: toggle debug overlay and camera preview
-- `1`: reference cube scene
-- `2`, `3`, `4`: experimental visual scenes
+- `1`, `2`, `3`: experimental visual scenes
+- `4`: reference cube scene
 - `R`: reset tracking and calibration
 - `F`: toggle fullscreen
 - `+` / `-`: increase or decrease parallax sensitivity
