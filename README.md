@@ -116,7 +116,3 @@ python -m pytest -q
 ```
 
 The tests cover calibration, smoothing, monocular depth mapping, camera transforms, MediaPipe timestamp handling, and projection math.
-
-## GitHub Description
-
-Experimental Python/Panda3D head-tracked display prototype using OpenCV and MediaPipe to create webcam-driven parallax and off-axis 3D rendering on a normal monitor.
