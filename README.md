@@ -12,9 +12,9 @@ The core effect uses face/head landmarks, not pupil or iris tracking, so it is d
 - Calibrates a neutral seated position with one key press.
 - Smooths noisy tracking and holds/eases gracefully when tracking is lost.
 - Renders three Panda3D scenes with depth layers and strong parallax:
-  - Neon Depth Box
-  - Star Tunnel
-  - Holographic Gallery
+  - Neon Wall Portal
+  - Star Wall Tunnel
+  - Holographic Wall Gallery
 
 HoloWindow works best with one user sitting in front of one monitor, with the webcam mounted near that monitor.
 

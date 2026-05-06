@@ -1,4 +1,4 @@
-"""Holographic object gallery scene."""
+"""Holographic object gallery embedded into the screen wall."""
 
 from __future__ import annotations
 
@@ -7,74 +7,148 @@ import random
 
 from panda3d.core import NodePath, Vec3, Vec4
 
-from holowindow.rendering.geometry import attach_cube, attach_line, attach_uv_sphere, attach_wire_box
+from holowindow.rendering.geometry import (
+    attach_cube,
+    attach_line,
+    attach_octahedron,
+    attach_panel,
+    attach_uv_sphere,
+    make_holo_texture,
+)
 from holowindow.rendering.scenes.base_scene import BaseScene
 
 
 class HolographicGalleryScene(BaseScene):
-    name = "Holographic Gallery"
+    name = "Holographic Wall Gallery"
 
     def __init__(self) -> None:
         super().__init__()
         self._cluster: NodePath | None = None
         self._orbiters: list[tuple[NodePath, float, float, float]] = []
+        self._surface_layers: list[tuple[NodePath, float, float]] = []
 
     def build(self, root: NodePath) -> None:
         random.seed(17)
-        attach_wire_box(
-            root,
-            name="gallery-frame",
-            size=(4.6, 5.8, 2.8),
-            color=Vec4(0.2, 1.0, 0.88, 0.5),
-            thickness=1.3,
-        ).setPos(0, 4.2, 0)
-
-        grid_color = Vec4(0.25, 0.75, 1.0, 0.24)
-        for x in [i * 0.55 for i in range(-5, 6)]:
-            attach_line(
-                root,
-                name=f"gallery-grid-x-{x}",
-                points=(Vec3(x, 1.0, -1.35), Vec3(x * 0.45, 7.5, -0.9)),
-                color=grid_color,
-                thickness=0.65,
-            )
-        for i in range(6):
-            z = -1.35 + i * 0.45
-            attach_line(
-                root,
-                name=f"gallery-grid-z-{i}",
-                points=(Vec3(-2.6, 1.0 + i * 0.95, z), Vec3(2.6, 1.0 + i * 0.95, z)),
-                color=grid_color,
-                thickness=0.65,
-            )
-
-        self._cluster = root.attachNewNode("crystal-cluster")
-        self._cluster.setPos(0, 4.0, 0.1)
-        self._cluster.setHpr(18, 0, 0)
-        colors = (
-            Vec4(0.0, 0.95, 1.0, 0.82),
-            Vec4(0.95, 0.18, 1.0, 0.76),
-            Vec4(0.8, 1.0, 0.28, 0.76),
+        texture = make_holo_texture(
+            "gallery-wall-image",
+            base=Vec4(0.008, 0.012, 0.032, 1.0),
+            accent=Vec4(0.72, 0.3, 1.0, 1.0),
         )
-        for i in range(9):
-            node = attach_cube(
-                self._cluster,
-                name=f"crystal-block-{i}",
-                size=0.62 - i * 0.025,
-                color=colors[i % len(colors)],
-                emission=colors[i % len(colors)] * 0.38,
+        attach_panel(
+            root,
+            name="gallery-display-wall",
+            width=15.4,
+            height=8.7,
+            y=8.8,
+            color=Vec4(0.78, 0.68, 1.0, 1.0),
+            texture=texture,
+        )
+        attach_panel(
+            root,
+            name="gallery-hologram-surface",
+            width=11.8,
+            height=6.5,
+            y=2.1,
+            color=Vec4(0.2, 0.62, 1.0, 0.10),
+        )
+
+        self._build_wall_composition(root)
+        self._build_sculpture(root)
+        self._build_orbiters(root)
+
+    def _build_wall_composition(self, root: NodePath) -> None:
+        grid_color = Vec4(0.3, 0.85, 1.0, 0.16)
+        for x in [i * 0.72 for i in range(-8, 9)]:
+            attach_line(
+                root,
+                name=f"gallery-wall-grid-x-{x}",
+                points=(Vec3(x, 2.06, -3.0), Vec3(x * 0.8, 6.8, 2.7)),
+                color=grid_color,
+                thickness=0.48,
             )
-            angle = i / 9.0 * math.tau
-            radius = 0.25 + (i % 4) * 0.18
-            node.setPos(math.cos(angle) * radius, math.sin(angle) * radius * 0.3, math.sin(angle) * 0.55)
+        for i in range(11):
+            z = -2.8 + i * 0.56
+            attach_line(
+                root,
+                name=f"gallery-wall-grid-z-{i}",
+                points=(Vec3(-5.8, 2.04, z), Vec3(5.8, 2.04, z)),
+                color=grid_color,
+                thickness=0.42,
+            )
+
+        for i in range(10):
+            pane = attach_panel(
+                root,
+                name=f"gallery-depth-pane-{i}",
+                width=random.uniform(0.72, 1.55),
+                height=random.uniform(0.24, 0.72),
+                y=random.uniform(2.55, 7.8),
+                x=random.uniform(-4.4, 4.4),
+                z=random.uniform(-2.4, 2.4),
+                color=Vec4(0.65, 0.25, 1.0, random.uniform(0.04, 0.10)),
+            )
+            pane.setR(random.uniform(-18, 18))
+            self._surface_layers.append((pane, random.uniform(0.18, 0.55), random.uniform(0, math.tau)))
+
+    def _build_sculpture(self, root: NodePath) -> None:
+        self._cluster = root.attachNewNode("wall-sculpture")
+        self._cluster.setPos(0, 3.35, 0.08)
+        self._cluster.setHpr(18, -4, 0)
+        colors = (
+            Vec4(0.0, 0.96, 1.0, 0.84),
+            Vec4(0.98, 0.22, 1.0, 0.78),
+            Vec4(0.78, 1.0, 0.34, 0.78),
+            Vec4(1.0, 0.62, 0.24, 0.74),
+        )
+
+        core = attach_octahedron(
+            self._cluster,
+            name="gallery-core-crystal",
+            radius=0.84,
+            color=Vec4(0.08, 0.95, 1.0, 0.72),
+            emission=Vec4(0.0, 0.55, 0.8, 1.0),
+        )
+        core.setHpr(0, 12, 16)
+
+        for i in range(14):
+            color = colors[i % len(colors)]
+            if i % 2 == 0:
+                node = attach_octahedron(
+                    self._cluster,
+                    name=f"sculpture-shard-{i}",
+                    radius=0.22 + (i % 5) * 0.05,
+                    color=color,
+                    emission=color * 0.34,
+                )
+            else:
+                node = attach_cube(
+                    self._cluster,
+                    name=f"sculpture-block-{i}",
+                    size=0.25 + (i % 4) * 0.055,
+                    color=color,
+                    emission=color * 0.24,
+                )
+            angle = i / 14.0 * math.tau
+            radius = 0.62 + (i % 4) * 0.22
+            node.setPos(
+                math.cos(angle) * radius,
+                math.sin(angle * 1.7) * 0.36,
+                math.sin(angle) * radius * 0.56,
+            )
             node.setHpr(i * 31, 25 + i * 7, i * 17)
 
-        for i in range(44):
-            color = Vec4(0.0, random.uniform(0.65, 1.0), 1.0, random.uniform(0.35, 0.85))
+    def _build_orbiters(self, root: NodePath) -> None:
+        for i in range(88):
+            color = Vec4(
+                random.uniform(0.15, 0.65),
+                random.uniform(0.62, 1.0),
+                1.0,
+                random.uniform(0.35, 0.86),
+            )
             node = attach_uv_sphere(
                 root,
-                name=f"gallery-orbiter-{i}",
-                radius=random.uniform(0.025, 0.065),
+                name=f"gallery-depth-orbiter-{i}",
+                radius=random.uniform(0.018, 0.07),
                 color=color,
                 segments=8,
                 rings=5,
@@ -83,22 +157,26 @@ class HolographicGalleryScene(BaseScene):
             self._orbiters.append(
                 (
                     node,
-                    random.uniform(0.9, 2.4),
-                    random.uniform(0.35, 1.1),
+                    random.uniform(0.75, 3.3),
+                    random.uniform(0.26, 1.05),
                     random.uniform(0, math.tau),
                 )
             )
 
     def update(self, dt: float, elapsed: float) -> None:
         if self._cluster is not None:
-            self._cluster.setH(self._cluster.getH() + dt * 11.0)
-            self._cluster.setP(math.sin(elapsed * 0.5) * 5.0)
+            self._cluster.setH(self._cluster.getH() + dt * 9.0)
+            self._cluster.setP(math.sin(elapsed * 0.45) * 4.5)
 
         for node, radius, speed, phase in self._orbiters:
             angle = elapsed * speed + phase
+            depth_offset = math.sin(angle * 0.52 + phase) * 1.15
             node.setPos(
                 math.cos(angle) * radius,
-                4.0 + math.sin(angle * 0.55 + phase) * 0.7,
-                math.sin(angle) * radius * 0.48,
+                3.55 + depth_offset,
+                math.sin(angle) * radius * 0.56,
             )
 
+        for pane, speed, phase in self._surface_layers:
+            pane.setX(pane.getX() + math.sin(elapsed * speed + phase) * dt * 0.04)
+            pane.setColorScale(1.0, 1.0, 1.0, 0.7 + math.sin(elapsed * speed * 1.7 + phase) * 0.18)

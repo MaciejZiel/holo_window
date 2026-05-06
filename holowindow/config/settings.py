@@ -50,12 +50,12 @@ class RenderSettings:
     sensitivity_y: float = 1.0
     sensitivity_z: float = 1.0
     rotation_sensitivity: float = 0.45
-    camera_lateral_range: float = 2.4
-    camera_vertical_range: float = 1.45
-    camera_depth_range: float = 1.8
-    base_fov: float = 58.0
-    min_fov: float = 42.0
-    max_fov: float = 72.0
+    camera_lateral_range: float = 1.85
+    camera_vertical_range: float = 1.12
+    camera_depth_range: float = 1.25
+    base_fov: float = 64.0
+    min_fov: float = 48.0
+    max_fov: float = 76.0
     fullscreen: bool = False
     show_debug: bool = True
 

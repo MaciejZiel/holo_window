@@ -95,19 +95,19 @@ class HoloWindowRenderer(ShowBase):
     def _create_scenes(self):
         from holowindow.rendering.scenes import (
             HolographicGalleryScene,
-            NeonDepthBoxScene,
+            NeonWallPortalScene,
             StarTunnelScene,
         )
 
-        return [NeonDepthBoxScene(), StarTunnelScene(), HolographicGalleryScene()]
+        return [NeonWallPortalScene(), StarTunnelScene(), HolographicGalleryScene()]
 
     def _setup_camera(self) -> None:
         lens = PerspectiveLens()
         lens.setFov(self.settings.render.base_fov)
         lens.setNearFar(0.08, 75.0)
         self.cam.node().setLens(lens)
-        self.camera.setPos(0, -5.8, 0)
-        self.camera.lookAt(0, 4.2, 0)
+        self.camera.setPos(0, -4.8, 0)
+        self.camera.lookAt(0, 4.8, 0)
 
     def _setup_lighting(self) -> None:
         ambient = AmbientLight("ambient-neon-fill")
@@ -167,15 +167,15 @@ class HoloWindowRenderer(ShowBase):
         parallax = render.parallax_sensitivity * (1.0 + clamp(state.head_z, -0.6, 0.8) * 0.35)
         x = state.head_x * render.camera_lateral_range * render.sensitivity_x * parallax
         z = state.head_y * render.camera_vertical_range * render.sensitivity_y * parallax
-        y = -5.8 + state.head_z * render.camera_depth_range * render.sensitivity_z
+        y = -4.8 + state.head_z * render.camera_depth_range * render.sensitivity_z
         x = clamp(x, -3.8, 3.8)
-        y = clamp(y, -7.2, -3.4)
+        y = clamp(y, -6.4, -3.35)
         z = clamp(z, -2.4, 2.4)
 
         self.camera.setPos(x, y, z)
         target = Vec3(
             state.yaw * 0.015 * render.rotation_sensitivity,
-            4.25,
+            4.8,
             state.pitch * -0.012 * render.rotation_sensitivity,
         )
         self.camera.lookAt(target)
