@@ -31,8 +31,8 @@ class CameraSettings:
 class TrackingSettings:
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
-    max_tracking_fps: float = 15.0
-    processing_width: int = 384
+    max_tracking_fps: float = 24.0
+    processing_width: int = 320
     screen_center_y_in_camera_frame: float = 0.58
     screen_center_x_in_camera_frame: float = 0.5
     smoothing_alpha_position: float = 0.36
@@ -71,7 +71,7 @@ class RenderSettings:
     virtual_eye_distance: float = 5.2
     min_eye_distance: float = 2.6
     max_eye_distance: float = 8.4
-    visual_response_rate: float = 14.0
+    visual_response_rate: float = 18.0
     visual_jitter_deadzone: float = 0.003
     base_fov: float = 64.0
     min_fov: float = 48.0

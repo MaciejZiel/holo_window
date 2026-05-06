@@ -14,6 +14,9 @@ from holowindow.tracking.tracking_state import TrackingState
 @dataclass(slots=True)
 class DebugSnapshot:
     fps: float
+    tracking_fps: float
+    frame_age_ms: float
+    inference_ms: float
     camera_label: str
     scene_name: str
     calibrated: bool
@@ -69,6 +72,7 @@ class DebugOverlay:
         text = (
             f"HoloWindow\n"
             f"FPS: {snapshot.fps:5.1f}\n"
+            f"Tracking: {snapshot.tracking_fps:4.1f} Hz  age {snapshot.frame_age_ms:4.0f} ms  infer {snapshot.inference_ms:4.0f} ms\n"
             f"Camera: {snapshot.camera_label}\n"
             f"Tracking mode: {state.source_mode}\n"
             f"Face detected: {face}\n"

@@ -289,6 +289,9 @@ class HoloWindowRenderer(ShowBase):
             camera_label = f"{camera.name} [{camera.index}] {self.runtime.camera.transform_label}"
         snapshot = DebugSnapshot(
             fps=float(self.clock.getAverageFrameRate()),
+            tracking_fps=self.runtime.tracking_fps,
+            frame_age_ms=self.runtime.frame_age_ms,
+            inference_ms=self.runtime.inference_ms,
             camera_label=camera_label,
             scene_name=self.active_scene_name,
             calibrated=self.runtime.calibration.is_calibrated,
@@ -366,6 +369,9 @@ class HoloWindowRuntime:
         self._last_tracking_at = 0.0
         self._last_processed_frame_timestamp = 0.0
         self._last_preview_at = 0.0
+        self.tracking_fps = 0.0
+        self.frame_age_ms = 0.0
+        self.inference_ms = 0.0
 
     def start(self) -> int:
         self.camera.enumerate_devices()
@@ -388,6 +394,7 @@ class HoloWindowRuntime:
             )
             self.debug_frame = None
         else:
+            self.frame_age_ms = max(0.0, (now - frame.timestamp) * 1000.0)
             if self.debug_preview_enabled and now - self._last_preview_at >= 0.1:
                 self.debug_frame = self._make_debug_frame(frame.image)
                 self._last_preview_at = now
@@ -398,19 +405,32 @@ class HoloWindowRuntime:
                 or now - self._last_tracking_at < self._tracking_interval
             ):
                 return self._last_smoothed
+            started_at = time.perf_counter()
             raw = self.tracker.process_frame(
                 frame.image,
                 timestamp=frame.timestamp,
                 camera_index=frame.camera_index,
                 source_mode=frame.mode,
             )
+            self.inference_ms = (time.perf_counter() - started_at) * 1000.0
             self._last_processed_frame_timestamp = frame.timestamp
 
         self._last_raw = raw
         calibrated = self.calibration.apply(raw)
+        previous_tracking_at = self._last_tracking_at
         self._last_tracking_at = now
+        self.tracking_fps = self._estimate_tracking_fps(now, previous_tracking_at)
         self._last_smoothed = self.smoother.update(calibrated, now=now)
         return self._last_smoothed
+
+    def _estimate_tracking_fps(self, now: float, previous_tracking_at: float) -> float:
+        if previous_tracking_at <= 0.0:
+            return self.tracking_fps
+        interval = max(1e-6, now - previous_tracking_at)
+        sample = min(120.0, 1.0 / interval)
+        if self.tracking_fps <= 0.0:
+            return sample
+        return self.tracking_fps + (sample - self.tracking_fps) * 0.18
 
     @property
     def _tracking_interval(self) -> float:

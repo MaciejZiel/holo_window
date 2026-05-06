@@ -48,6 +48,7 @@ class FaceTracker:
         self._task_landmarker: object | None = None
         self._task_image_cls: object | None = None
         self._task_image_format: object | None = None
+        self._last_task_timestamp_ms = 0
         self._haar: cv2.CascadeClassifier | None = None
         self._create_backend()
 
@@ -86,7 +87,7 @@ class FaceTracker:
             )
 
         rgb = self._to_rgb(frame)
-        landmarks = self._detect_landmarks(rgb)
+        landmarks = self._detect_landmarks(rgb, timestamp=timestamp)
         if landmarks is None and self._backend == "haar_fallback":
             return self._process_haar(
                 frame,
@@ -209,9 +210,10 @@ class FaceTracker:
         self._task_image_format = mp.ImageFormat.SRGB
         options = vision.FaceLandmarkerOptions(
             base_options=python.BaseOptions(model_asset_path=str(model_path)),
-            running_mode=vision.RunningMode.IMAGE,
+            running_mode=vision.RunningMode.VIDEO,
             num_faces=1,
             min_face_detection_confidence=self.settings.min_detection_confidence,
+            min_face_presence_confidence=self.settings.min_detection_confidence,
             min_tracking_confidence=self.settings.min_tracking_confidence,
             output_face_blendshapes=False,
             output_facial_transformation_matrixes=False,
@@ -276,7 +278,7 @@ class FaceTracker:
             return cv2.cvtColor(frame[:, :, 0], cv2.COLOR_GRAY2BGR)
         return frame.copy()
 
-    def _detect_landmarks(self, rgb: np.ndarray) -> Sequence[object] | None:
+    def _detect_landmarks(self, rgb: np.ndarray, *, timestamp: float) -> Sequence[object] | None:
         if self._backend == "mediapipe_face_mesh" and self._face_mesh is not None:
             result = self._face_mesh.process(rgb)
             if result.multi_face_landmarks:
@@ -285,10 +287,17 @@ class FaceTracker:
 
         if self._backend == "mediapipe_face_landmarker" and self._task_landmarker is not None:
             image = self._task_image_cls(image_format=self._task_image_format, data=rgb)
-            result = self._task_landmarker.detect(image)
+            result = self._task_landmarker.detect_for_video(image, self._timestamp_ms(timestamp))
             if result.face_landmarks:
                 return result.face_landmarks[0]
         return None
+
+    def _timestamp_ms(self, timestamp: float) -> int:
+        timestamp_ms = int(timestamp * 1000.0)
+        if timestamp_ms <= self._last_task_timestamp_ms:
+            timestamp_ms = self._last_task_timestamp_ms + 1
+        self._last_task_timestamp_ms = timestamp_ms
+        return timestamp_ms
 
     def _process_haar(
         self,
