@@ -71,6 +71,13 @@ class RenderSettings:
     virtual_eye_distance: float = 5.2
     min_eye_distance: float = 2.6
     max_eye_distance: float = 8.4
+    physical_screen_width_m: float = 0.344
+    physical_screen_height_m: float = 0.194
+    nominal_eye_distance_m: float = 0.55
+    head_lateral_range_m: float = 0.22
+    head_vertical_range_m: float = 0.14
+    head_depth_range_m: float = 0.24
+    projection_depth_scale: float = 0.38
     visual_response_rate: float = 18.0
     visual_jitter_deadzone: float = 0.003
     base_fov: float = 64.0

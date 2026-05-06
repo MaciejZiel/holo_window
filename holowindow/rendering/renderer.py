@@ -8,6 +8,7 @@ from dataclasses import replace
 from math import exp
 
 from holowindow.config.settings import AppSettings, clamp
+from holowindow.rendering.projection import off_axis_frustum_corners, physical_eye_pose_units
 from holowindow.tracking.tracking_state import TrackingState
 
 
@@ -181,7 +182,7 @@ class HoloWindowRenderer(ShowBase):
         x = x_head * render.camera_lateral_range * render.sensitivity_x * parallax
         z = y_head * render.camera_vertical_range * render.sensitivity_y * parallax
         if render.off_axis_projection:
-            self._apply_off_axis_camera(state, x, z, z_head)
+            self._apply_off_axis_camera(state, x_head, y_head, z_head, parallax)
             return
 
         y = -4.8 + z_head * render.camera_depth_range * render.sensitivity_z
@@ -207,39 +208,35 @@ class HoloWindowRenderer(ShowBase):
             )
             lens.setFov(fov)
 
-    def _apply_off_axis_camera(self, state: TrackingState, eye_x: float, eye_z: float, head_z: float) -> None:
+    def _apply_off_axis_camera(
+        self,
+        state: TrackingState,
+        head_x: float,
+        head_y: float,
+        head_z: float,
+        parallax: float,
+    ) -> None:
         render = self.settings.render
-        eye_x = clamp(eye_x, -5.2, 5.2)
-        eye_z = clamp(eye_z, -3.0, 3.0)
-        eye_distance = clamp(
-            render.virtual_eye_distance - head_z * render.camera_depth_range * render.sensitivity_z,
-            render.min_eye_distance,
-            render.max_eye_distance,
+        eye = physical_eye_pose_units(
+            head_x=head_x,
+            head_y=head_y,
+            head_z=head_z,
+            parallax=parallax,
+            settings=render,
         )
         screen_y = render.virtual_screen_y
-        self.camera.setPos(eye_x, screen_y - eye_distance, eye_z)
+        self.camera.setPos(eye.x, screen_y - eye.distance, eye.z)
         self.camera.setHpr(0.0, 0.0, clamp(-state.roll * 0.08 * render.rotation_sensitivity, -2.0, 2.0))
 
         lens = self.cam.node().getLens()
         if isinstance(lens, PerspectiveLens):
-            screen_width, screen_height = self._current_virtual_screen_size()
-            half_w = screen_width / 2.0
-            half_h = screen_height / 2.0
-            ul = Vec3(-half_w - eye_x, eye_distance, half_h - eye_z)
-            ur = Vec3(half_w - eye_x, eye_distance, half_h - eye_z)
-            ll = Vec3(-half_w - eye_x, eye_distance, -half_h - eye_z)
-            lr = Vec3(half_w - eye_x, eye_distance, -half_h - eye_z)
+            ul_raw, ur_raw, ll_raw, lr_raw = off_axis_frustum_corners(eye)
+            ul = Vec3(*ul_raw)
+            ur = Vec3(*ur_raw)
+            ll = Vec3(*ll_raw)
+            lr = Vec3(*lr_raw)
             lens.setFrustumFromCorners(ul, ur, ll, lr, Lens.FC_off_axis | Lens.FC_aspect_ratio)
             lens.setNearFar(0.08, 75.0)
-
-    def _current_virtual_screen_size(self) -> tuple[float, float]:
-        height = self.settings.render.virtual_screen_height
-        try:
-            aspect = float(self.getAspectRatio())
-        except Exception:
-            aspect = self.settings.render.virtual_screen_width / height
-        width = max(self.settings.render.virtual_screen_width, height * max(0.5, aspect))
-        return width, height
 
     def _amplify_head_motion(self, value: float) -> float:
         exponent = self.settings.render.off_axis_motion_exponent
