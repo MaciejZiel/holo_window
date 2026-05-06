@@ -1,0 +1,6 @@
+numpy>=1.24
+opencv-python>=4.8
+mediapipe>=0.10
+panda3d>=1.10.14
+pytest>=8.0
+
