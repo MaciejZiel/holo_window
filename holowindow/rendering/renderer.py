@@ -222,14 +222,24 @@ class HoloWindowRenderer(ShowBase):
 
         lens = self.cam.node().getLens()
         if isinstance(lens, PerspectiveLens):
-            half_w = render.virtual_screen_width / 2.0
-            half_h = render.virtual_screen_height / 2.0
+            screen_width, screen_height = self._current_virtual_screen_size()
+            half_w = screen_width / 2.0
+            half_h = screen_height / 2.0
             ul = Vec3(-half_w - eye_x, eye_distance, half_h - eye_z)
             ur = Vec3(half_w - eye_x, eye_distance, half_h - eye_z)
             ll = Vec3(-half_w - eye_x, eye_distance, -half_h - eye_z)
             lr = Vec3(half_w - eye_x, eye_distance, -half_h - eye_z)
             lens.setFrustumFromCorners(ul, ur, ll, lr, Lens.FC_off_axis | Lens.FC_aspect_ratio)
             lens.setNearFar(0.08, 75.0)
+
+    def _current_virtual_screen_size(self) -> tuple[float, float]:
+        height = self.settings.render.virtual_screen_height
+        try:
+            aspect = float(self.getAspectRatio())
+        except Exception:
+            aspect = self.settings.render.virtual_screen_width / height
+        width = max(self.settings.render.virtual_screen_width, height * max(0.5, aspect))
+        return width, height
 
     def _amplify_head_motion(self, value: float) -> float:
         exponent = self.settings.render.off_axis_motion_exponent

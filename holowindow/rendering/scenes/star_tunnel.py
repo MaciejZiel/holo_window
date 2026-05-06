@@ -30,19 +30,11 @@ class StarTunnelScene(BaseScene):
         attach_panel(
             root,
             name="starfield-wall",
-            width=16.0,
-            height=9.0,
+            width=32.0,
+            height=18.0,
             y=10.2,
             color=Vec4(0.68, 0.78, 1.0, 1.0),
             texture=texture,
-        )
-        attach_panel(
-            root,
-            name="warp-glass-surface",
-            width=12.4,
-            height=6.8,
-            y=2.0,
-            color=Vec4(0.05, 0.2, 0.75, 0.10),
         )
 
         self._build_warp_lines(root)

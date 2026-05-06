@@ -37,19 +37,11 @@ class HolographicGalleryScene(BaseScene):
         attach_panel(
             root,
             name="gallery-display-wall",
-            width=15.4,
-            height=8.7,
+            width=32.0,
+            height=18.0,
             y=8.8,
             color=Vec4(0.78, 0.68, 1.0, 1.0),
             texture=texture,
-        )
-        attach_panel(
-            root,
-            name="gallery-hologram-surface",
-            width=11.8,
-            height=6.5,
-            y=2.1,
-            color=Vec4(0.2, 0.62, 1.0, 0.10),
         )
 
         self._build_wall_composition(root)

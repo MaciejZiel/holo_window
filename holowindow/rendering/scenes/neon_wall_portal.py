@@ -39,19 +39,11 @@ class NeonWallPortalScene(BaseScene):
         attach_panel(
             root,
             name="full-screen-wall-image",
-            width=15.5,
-            height=8.8,
+            width=32.0,
+            height=18.0,
             y=9.2,
             color=Vec4(0.55, 0.72, 1.0, 1.0),
             texture=backdrop,
-        )
-        attach_panel(
-            root,
-            name="transparent-screen-surface",
-            width=11.6,
-            height=6.4,
-            y=2.15,
-            color=Vec4(0.08, 0.42, 0.85, 0.12),
         )
 
         self._build_surface_image(root)
