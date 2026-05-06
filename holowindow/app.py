@@ -1,7 +1,10 @@
 """Application bootstrap for HoloWindow."""
 
+from __future__ import annotations
 
-def main() -> None:
+
+def main() -> int:
     """Start the desktop application."""
-    print("HoloWindow scaffold is installed. Renderer implementation is coming next.")
+    from holowindow.rendering.renderer import run_app
 
+    return run_app()
