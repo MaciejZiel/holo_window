@@ -80,7 +80,7 @@ class CalibrationManager:
                 self.settings.max_head_y,
             ),
             head_z=clamp(
-                (state.head_z - profile.neutral_z) * profile.sensitivity_z,
+                self._relative_depth_delta(state.head_z, profile.neutral_z) * profile.sensitivity_z,
                 -self.settings.max_head_z,
                 self.settings.max_head_z,
             ),
@@ -100,6 +100,11 @@ class CalibrationManager:
                 max_rot,
             ),
         )
+
+    @staticmethod
+    def _relative_depth_delta(current_width: float, neutral_width: float) -> float:
+        neutral = max(0.03, neutral_width)
+        return (current_width / neutral) - 1.0
 
     def adjust_position_sensitivity(self, delta: float) -> None:
         next_value = clamp(self.profile.sensitivity_x + delta, 0.25, 3.0)
@@ -126,4 +131,3 @@ class CalibrationManager:
         data = json.loads(target.read_text(encoding="utf-8"))
         self.profile = CalibrationProfile(**data)
         return True
-

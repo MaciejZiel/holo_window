@@ -37,6 +37,8 @@ class TrackingSettings:
     screen_center_x_in_camera_frame: float = 0.5
     smoothing_alpha_position: float = 0.36
     smoothing_alpha_rotation: float = 0.28
+    prediction_seconds: float = 0.045
+    max_predicted_delta: float = 0.18
     lost_hold_seconds: float = 0.35
     return_to_neutral_alpha: float = 0.045
     max_head_x: float = 1.4

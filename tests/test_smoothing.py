@@ -22,7 +22,11 @@ def lost(timestamp):
 
 
 def test_detected_states_are_exponentially_smoothed():
-    settings = TrackingSettings(smoothing_alpha_position=0.5, smoothing_alpha_rotation=0.25)
+    settings = TrackingSettings(
+        smoothing_alpha_position=0.5,
+        smoothing_alpha_rotation=0.25,
+        prediction_seconds=0.0,
+    )
     smoother = TrackingSmoother(settings)
 
     first = smoother.update(detected(1.0, x=0.0, yaw=0.0), now=1.0)
@@ -49,7 +53,7 @@ def test_tracking_loss_holds_last_state_briefly():
 
 
 def test_tracking_loss_eases_back_to_neutral_after_hold():
-    settings = TrackingSettings(lost_hold_seconds=0.1, return_to_neutral_alpha=0.25)
+    settings = TrackingSettings(lost_hold_seconds=0.1, return_to_neutral_alpha=0.25, prediction_seconds=0.0)
     smoother = TrackingSmoother(settings)
 
     smoother.update(detected(1.0, x=0.8, z=-0.4, yaw=20.0), now=1.0)
@@ -59,3 +63,18 @@ def test_tracking_loss_eases_back_to_neutral_after_hold():
     assert eased.head_z == pytest.approx(-0.3)
     assert eased.yaw == 15.0
     assert eased.tracking_lost
+
+
+def test_smoother_predicts_short_term_motion():
+    settings = TrackingSettings(
+        smoothing_alpha_position=1.0,
+        smoothing_alpha_rotation=1.0,
+        prediction_seconds=0.05,
+        max_predicted_delta=0.5,
+    )
+    smoother = TrackingSmoother(settings)
+
+    smoother.update(detected(1.0, x=0.0), now=1.0)
+    predicted = smoother.update(detected(1.1, x=0.2), now=1.1)
+
+    assert predicted.head_x > 0.2

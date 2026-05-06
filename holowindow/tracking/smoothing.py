@@ -20,6 +20,15 @@ class TrackingSmoother:
         self.settings = settings or TrackingSettings()
         self._state: TrackingState | None = None
         self._last_seen_at: float | None = None
+        self._last_update_at: float | None = None
+        self._velocity = {
+            "head_x": 0.0,
+            "head_y": 0.0,
+            "head_z": 0.0,
+            "yaw": 0.0,
+            "pitch": 0.0,
+            "roll": 0.0,
+        }
 
     @property
     def current(self) -> TrackingState | None:
@@ -28,6 +37,9 @@ class TrackingSmoother:
     def reset(self) -> None:
         self._state = None
         self._last_seen_at = None
+        self._last_update_at = None
+        for key in self._velocity:
+            self._velocity[key] = 0.0
 
     def update(
         self,
@@ -37,10 +49,12 @@ class TrackingSmoother:
         current_time = time.monotonic() if now is None else now
         if measurement.face_detected and measurement.confidence > 0.0:
             self._last_seen_at = current_time
-            self._state = self._smooth_detected(measurement)
+            self._state = self._smooth_detected(measurement, current_time)
+            self._last_update_at = current_time
             return self._state
 
         self._state = self._smooth_lost(measurement, current_time)
+        self._last_update_at = current_time
         return self._state
 
     def adjust_smoothing(self, delta: float) -> None:
@@ -49,7 +63,7 @@ class TrackingSmoother:
         self.settings.smoothing_alpha_position = next_position
         self.settings.smoothing_alpha_rotation = next_rotation
 
-    def _smooth_detected(self, measurement: TrackingState) -> TrackingState:
+    def _smooth_detected(self, measurement: TrackingState, current_time: float) -> TrackingState:
         if self._state is None:
             return measurement.with_detection_flags(
                 face_detected=True,
@@ -59,7 +73,7 @@ class TrackingSmoother:
 
         pos_alpha = self.settings.smoothing_alpha_position
         rot_alpha = self.settings.smoothing_alpha_rotation
-        return replace(
+        smoothed = replace(
             measurement,
             face_detected=True,
             tracking_lost=False,
@@ -70,6 +84,37 @@ class TrackingSmoother:
             pitch=_ema(self._state.pitch, measurement.pitch, rot_alpha),
             roll=_ema(self._state.roll, measurement.roll, rot_alpha),
             confidence=_ema(self._state.confidence, measurement.confidence, 0.35),
+        )
+        self._update_velocity(self._state, smoothed, current_time)
+        return self._predict(smoothed)
+
+    def _update_velocity(self, previous: TrackingState, current: TrackingState, current_time: float) -> None:
+        if self._last_update_at is None:
+            return
+        dt = max(1e-3, current_time - self._last_update_at)
+        velocity_alpha = 0.35
+        for field in self._velocity:
+            sample = (getattr(current, field) - getattr(previous, field)) / dt
+            self._velocity[field] = _ema(self._velocity[field], sample, velocity_alpha)
+
+    def _predict(self, state: TrackingState) -> TrackingState:
+        horizon = self.settings.prediction_seconds
+        if horizon <= 0.0:
+            return state
+        max_delta = self.settings.max_predicted_delta
+
+        def predicted(field: str) -> float:
+            delta = clamp(self._velocity[field] * horizon, -max_delta, max_delta)
+            return getattr(state, field) + delta
+
+        return replace(
+            state,
+            head_x=predicted("head_x"),
+            head_y=predicted("head_y"),
+            head_z=predicted("head_z"),
+            yaw=predicted("yaw"),
+            pitch=predicted("pitch"),
+            roll=predicted("roll"),
         )
 
     def _smooth_lost(
@@ -121,4 +166,3 @@ class TrackingSmoother:
             source_mode=measurement.source_mode,
             camera_index=measurement.camera_index,
         )
-

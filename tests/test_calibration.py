@@ -1,3 +1,5 @@
+import pytest
+
 from holowindow.config.settings import TrackingSettings
 from holowindow.tracking.calibration import CalibrationManager
 from holowindow.tracking.tracking_state import TrackingState
@@ -29,7 +31,7 @@ def test_calibration_maps_values_relative_to_neutral():
 
     assert round(mapped.head_x, 3) == -0.3
     assert round(mapped.head_y, 3) == 0.3
-    assert round(mapped.head_z, 3) == 0.15
+    assert round(mapped.head_z, 3) == 0.5
     assert round(mapped.yaw, 3) == 5.0
     assert round(mapped.pitch, 3) == 2.0
     assert round(mapped.roll, 3) == -3.0
@@ -53,3 +55,13 @@ def test_calibration_ignores_missing_face():
     assert not calibration.calibrate(state(face_detected=False, confidence=0.0))
     assert not calibration.is_calibrated
 
+
+def test_calibration_uses_relative_face_width_for_monocular_depth():
+    calibration = CalibrationManager()
+    assert calibration.calibrate(state(head_z=0.25))
+
+    closer = calibration.apply(state(head_z=0.30))
+    farther = calibration.apply(state(head_z=0.20))
+
+    assert closer.head_z == pytest.approx(0.2)
+    assert farther.head_z == pytest.approx(-0.2)
