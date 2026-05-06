@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import replace
+from math import exp
 
 from holowindow.config.settings import AppSettings, clamp
 from holowindow.tracking.tracking_state import TrackingState
@@ -61,6 +62,7 @@ class HoloWindowRenderer(ShowBase):
         self._last_time = time.monotonic()
         self._last_frame_bgr = None
         self._last_tracking = TrackingState.neutral()
+        self._visual_tracking = TrackingState.neutral()
         self._current_scene_index = 0
         self._scenes = self._create_scenes()
         self._scene_root = self.render.attachNewNode("scene-root")
@@ -96,10 +98,11 @@ class HoloWindowRenderer(ShowBase):
         from holowindow.rendering.scenes import (
             HolographicGalleryScene,
             NeonWallPortalScene,
+            ReferenceCubeScene,
             StarTunnelScene,
         )
 
-        return [NeonWallPortalScene(), StarTunnelScene(), HolographicGalleryScene()]
+        return [ReferenceCubeScene(), NeonWallPortalScene(), StarTunnelScene(), HolographicGalleryScene()]
 
     def _setup_camera(self) -> None:
         lens = PerspectiveLens()
@@ -146,6 +149,7 @@ class HoloWindowRenderer(ShowBase):
         self.accept("1", self.switch_scene, [0])
         self.accept("2", self.switch_scene, [1])
         self.accept("3", self.switch_scene, [2])
+        self.accept("4", self.switch_scene, [3])
         self.accept("+", self._adjust_parallax, [0.1])
         self.accept("=", self._adjust_parallax, [0.1])
         self.accept("-", self._adjust_parallax, [-0.1])
@@ -161,7 +165,8 @@ class HoloWindowRenderer(ShowBase):
         tracking = self.runtime.update_tracking()
         self._last_tracking = tracking
         self._last_frame_bgr = self.runtime.debug_frame
-        self._apply_head_tracked_camera(tracking)
+        self._visual_tracking = self._smooth_visual_tracking(self._visual_tracking, tracking, dt)
+        self._apply_head_tracked_camera(self._visual_tracking)
         if self._active_scene is not None:
             self._active_scene.update(dt, task.time)
         self._update_overlay()
@@ -233,6 +238,35 @@ class HoloWindowRenderer(ShowBase):
             return 0.0
         return (1.0 if value > 0 else -1.0) * (abs(value) ** exponent)
 
+    def _smooth_visual_tracking(
+        self,
+        current: TrackingState,
+        target: TrackingState,
+        dt: float,
+    ) -> TrackingState:
+        if current.timestamp == 0.0:
+            return target
+
+        rate = max(1.0, self.settings.render.visual_response_rate)
+        alpha = 1.0 - exp(-dt * rate)
+        deadzone = self.settings.render.visual_jitter_deadzone
+
+        def blend(a: float, b: float) -> float:
+            delta = b - a
+            if abs(delta) < deadzone:
+                return a
+            return a + delta * alpha
+
+        return replace(
+            target,
+            head_x=blend(current.head_x, target.head_x),
+            head_y=blend(current.head_y, target.head_y),
+            head_z=blend(current.head_z, target.head_z),
+            yaw=blend(current.yaw, target.yaw),
+            pitch=blend(current.pitch, target.pitch),
+            roll=blend(current.roll, target.roll),
+        )
+
     def _update_overlay(self) -> None:
         if not self.overlay.visible:
             return
@@ -250,7 +284,7 @@ class HoloWindowRenderer(ShowBase):
             calibrated=self.runtime.calibration.is_calibrated,
             smoothing=self.runtime.smoother.settings.smoothing_alpha_position,
             parallax=self.settings.render.parallax_sensitivity,
-            tracking_state=self._last_tracking,
+            tracking_state=self._visual_tracking,
         )
         self.overlay.update_text(snapshot, self.settings)
         self.overlay.update_preview(self._last_frame_bgr)

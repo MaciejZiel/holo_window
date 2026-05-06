@@ -71,6 +71,8 @@ class RenderSettings:
     virtual_eye_distance: float = 5.2
     min_eye_distance: float = 2.6
     max_eye_distance: float = 8.4
+    visual_response_rate: float = 14.0
+    visual_jitter_deadzone: float = 0.003
     base_fov: float = 64.0
     min_fov: float = 48.0
     max_fov: float = 76.0
