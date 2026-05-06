@@ -59,7 +59,7 @@ class NeonWallPortalScene(BaseScene):
     def _build_surface_image(self, root: NodePath) -> None:
         grid_color = Vec4(0.0, 0.88, 1.0, 0.22)
         y = 2.08
-        for x in [i * 0.64 for i in range(-9, 10)]:
+        for x in [i * 0.82 for i in range(-7, 8)]:
             attach_line(
                 root,
                 name=f"screen-vertical-{x}",
@@ -67,7 +67,7 @@ class NeonWallPortalScene(BaseScene):
                 color=grid_color,
                 thickness=0.48,
             )
-        for z in [i * 0.42 for i in range(-7, 8)]:
+        for z in [i * 0.56 for i in range(-5, 6)]:
             attach_line(
                 root,
                 name=f"screen-horizontal-{z}",
@@ -76,7 +76,7 @@ class NeonWallPortalScene(BaseScene):
                 thickness=0.42,
             )
 
-        for i in range(18):
+        for i in range(10):
             z = -2.65 + i * 0.31
             attach_line(
                 root,
@@ -91,7 +91,7 @@ class NeonWallPortalScene(BaseScene):
                 thickness=0.75,
             )
 
-        for i in range(9):
+        for i in range(5):
             panel = attach_panel(
                 root,
                 name=f"floating-image-pane-{i}",
@@ -124,7 +124,7 @@ class NeonWallPortalScene(BaseScene):
         hero.setHpr(25, -18, 12)
         self._floaters.append(hero)
 
-        for i in range(22):
+        for i in range(14):
             color = colors[i % len(colors)]
             if i % 4 == 0:
                 node = attach_octahedron(
@@ -162,7 +162,7 @@ class NeonWallPortalScene(BaseScene):
             self._floaters.append(node)
 
     def _build_particle_field(self, root: NodePath) -> None:
-        for i in range(145):
+        for i in range(54):
             color = Vec4(0.25, random.uniform(0.68, 1.0), 1.0, random.uniform(0.35, 0.86))
             particle = attach_uv_sphere(
                 root,

@@ -50,8 +50,8 @@ class StarTunnelScene(BaseScene):
         self._build_image_layers(root)
 
     def _build_warp_lines(self, root: NodePath) -> None:
-        for i in range(64):
-            angle = i / 64.0 * math.tau
+        for i in range(34):
+            angle = i / 34.0 * math.tau
             near_radius = random.uniform(0.18, 0.75)
             far_radius = random.uniform(4.2, 7.4)
             z_scale = 0.56
@@ -69,7 +69,7 @@ class StarTunnelScene(BaseScene):
             self._streaks.append((line, random.uniform(0.25, 0.75), random.uniform(0, math.tau)))
 
     def _build_depth_stars(self, root: NodePath) -> None:
-        for i in range(210):
+        for i in range(76):
             depth = random.triangular(1.3, 10.4, 7.4)
             color = Vec4(
                 random.uniform(0.55, 0.9),
@@ -95,7 +95,7 @@ class StarTunnelScene(BaseScene):
             self._stars.append((star, random.uniform(0.55, 1.85), random.uniform(0, math.tau), depth))
 
     def _build_image_layers(self, root: NodePath) -> None:
-        for i in range(8):
+        for i in range(5):
             pane = attach_panel(
                 root,
                 name=f"warp-image-layer-{i}",

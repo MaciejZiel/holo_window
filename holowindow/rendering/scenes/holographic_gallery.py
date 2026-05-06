@@ -58,7 +58,7 @@ class HolographicGalleryScene(BaseScene):
 
     def _build_wall_composition(self, root: NodePath) -> None:
         grid_color = Vec4(0.3, 0.85, 1.0, 0.16)
-        for x in [i * 0.72 for i in range(-8, 9)]:
+        for x in [i * 0.95 for i in range(-6, 7)]:
             attach_line(
                 root,
                 name=f"gallery-wall-grid-x-{x}",
@@ -66,7 +66,7 @@ class HolographicGalleryScene(BaseScene):
                 color=grid_color,
                 thickness=0.48,
             )
-        for i in range(11):
+        for i in range(7):
             z = -2.8 + i * 0.56
             attach_line(
                 root,
@@ -76,7 +76,7 @@ class HolographicGalleryScene(BaseScene):
                 thickness=0.42,
             )
 
-        for i in range(10):
+        for i in range(5):
             pane = attach_panel(
                 root,
                 name=f"gallery-depth-pane-{i}",
@@ -110,7 +110,7 @@ class HolographicGalleryScene(BaseScene):
         )
         core.setHpr(0, 12, 16)
 
-        for i in range(14):
+        for i in range(9):
             color = colors[i % len(colors)]
             if i % 2 == 0:
                 node = attach_octahedron(
@@ -128,7 +128,7 @@ class HolographicGalleryScene(BaseScene):
                     color=color,
                     emission=color * 0.24,
                 )
-            angle = i / 14.0 * math.tau
+            angle = i / 9.0 * math.tau
             radius = 0.62 + (i % 4) * 0.22
             node.setPos(
                 math.cos(angle) * radius,
@@ -138,7 +138,7 @@ class HolographicGalleryScene(BaseScene):
             node.setHpr(i * 31, 25 + i * 7, i * 17)
 
     def _build_orbiters(self, root: NodePath) -> None:
-        for i in range(88):
+        for i in range(34):
             color = Vec4(
                 random.uniform(0.15, 0.65),
                 random.uniform(0.62, 1.0),

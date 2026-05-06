@@ -51,11 +51,18 @@ export HOLOWINDOW_FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
 - `+` / `-`: increase or decrease parallax sensitivity
 - `[` / `]`: decrease or increase smoothing
 - `TAB`: switch to the next detected camera device
+- `U`: rotate the camera image 180 degrees
+- `M`: mirror the camera image horizontally
+- `V`: flip the camera image vertically
 - `ESC`: exit cleanly
 
 ## Camera Selection
 
 At startup HoloWindow probes multiple OpenCV camera indices and opens the preferred/first available device. Press `TAB` to cycle through detected devices. If an IR camera appears as a normal video device, HoloWindow can use it as a grayscale or IR-like source. If the OS does not expose IR/depth hardware through OpenCV, the app cannot access that stream directly.
+
+The camera pipeline uses a low-latency background reader and keeps only the newest frame so old buffered frames do not add delay. The default capture size is `640x360` at up to `60 FPS`, with face tracking capped separately to keep rendering responsive.
+
+If your camera is mounted upside down, press `U`. If the movement feels reversed, use `M` or `V` and recalibrate with `C`.
 
 ## Tracking And Glasses
 

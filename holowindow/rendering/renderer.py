@@ -139,6 +139,9 @@ class HoloWindowRenderer(ShowBase):
         self.accept("d", self.overlay.toggle)
         self.accept("f", self._toggle_fullscreen)
         self.accept("tab", self._cycle_camera)
+        self.accept("u", self._toggle_camera_rotate)
+        self.accept("m", self._toggle_camera_mirror)
+        self.accept("v", self._toggle_camera_vertical_flip)
         self.accept("1", self.switch_scene, [0])
         self.accept("2", self.switch_scene, [1])
         self.accept("3", self.switch_scene, [2])
@@ -199,7 +202,7 @@ class HoloWindowRenderer(ShowBase):
         if camera is None:
             camera_label = "none"
         else:
-            camera_label = f"{camera.name} [{camera.index}]"
+            camera_label = f"{camera.name} [{camera.index}] {self.runtime.camera.transform_label}"
         snapshot = DebugSnapshot(
             fps=float(self.clock.getAverageFrameRate()),
             camera_label=camera_label,
@@ -220,6 +223,18 @@ class HoloWindowRenderer(ShowBase):
 
     def _cycle_camera(self) -> None:
         self.runtime.cycle_camera()
+
+    def _toggle_camera_rotate(self) -> None:
+        self.runtime.camera.toggle_rotate_180()
+        self.runtime.reset_tracking(keep_calibration=True)
+
+    def _toggle_camera_mirror(self) -> None:
+        self.runtime.camera.toggle_flip_horizontal()
+        self.runtime.reset_tracking(keep_calibration=True)
+
+    def _toggle_camera_vertical_flip(self) -> None:
+        self.runtime.camera.toggle_flip_vertical()
+        self.runtime.reset_tracking(keep_calibration=True)
 
     def _toggle_fullscreen(self) -> None:
         props = WindowProperties()
@@ -253,6 +268,10 @@ class HoloWindowRuntime:
         self.calibration = CalibrationManager(self.settings.tracking)
         self.smoother = TrackingSmoother(self.settings.tracking)
         self._last_raw = TrackingState.neutral()
+        self._last_smoothed = TrackingState.neutral()
+        self._last_tracking_at = 0.0
+        self._last_processed_frame_timestamp = 0.0
+        self._last_preview_at = 0.0
 
     def start(self) -> int:
         self.camera.enumerate_devices()
@@ -263,7 +282,10 @@ class HoloWindowRuntime:
 
     def update_tracking(self) -> TrackingState:
         frame = self.camera.read()
+        now = time.monotonic()
         if frame is None:
+            if now - self._last_tracking_at < self._tracking_interval:
+                return self._last_smoothed
             raw = replace(
                 TrackingState.neutral(),
                 tracking_lost=True,
@@ -272,24 +294,42 @@ class HoloWindowRuntime:
             )
             self.debug_frame = None
         else:
+            if now - self._last_preview_at >= 0.1:
+                self.debug_frame = self._make_debug_frame(frame.image)
+                self._last_preview_at = now
+            if (
+                frame.timestamp == self._last_processed_frame_timestamp
+                or now - self._last_tracking_at < self._tracking_interval
+            ):
+                return self._last_smoothed
             raw = self.tracker.process_frame(
                 frame.image,
                 timestamp=frame.timestamp,
                 camera_index=frame.camera_index,
                 source_mode=frame.mode,
             )
-            self.debug_frame = self._make_debug_frame(frame.image)
+            self._last_processed_frame_timestamp = frame.timestamp
 
         self._last_raw = raw
         calibrated = self.calibration.apply(raw)
-        return self.smoother.update(calibrated)
+        self._last_tracking_at = now
+        self._last_smoothed = self.smoother.update(calibrated, now=now)
+        return self._last_smoothed
+
+    @property
+    def _tracking_interval(self) -> float:
+        return 1.0 / max(1.0, self.settings.tracking.max_tracking_fps)
 
     def calibrate(self) -> bool:
         return self.calibration.calibrate(self._last_raw)
 
-    def reset_tracking(self) -> None:
-        self.calibration.reset()
+    def reset_tracking(self, *, keep_calibration: bool = False) -> None:
+        if not keep_calibration:
+            self.calibration.reset()
         self.smoother.reset()
+        self._last_smoothed = TrackingState.neutral()
+        self._last_tracking_at = 0.0
+        self._last_processed_frame_timestamp = 0.0
 
     def cycle_camera(self) -> bool:
         self.debug_frame = None

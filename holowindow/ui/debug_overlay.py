@@ -79,7 +79,7 @@ class DebugOverlay:
             f"Parallax: {snapshot.parallax:0.2f}\n"
             f"Scene: {snapshot.scene_name}\n"
             f"Calibrated: {calibrated}\n"
-            f"Controls: C calibrate | D debug | 1-3 scenes | TAB camera | ESC exit"
+            f"Controls: C calibrate | D debug | U rotate cam | TAB camera | ESC exit"
         )
         self._text.setText(text)
 

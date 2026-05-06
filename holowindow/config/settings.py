@@ -15,16 +15,22 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
 class CameraSettings:
     preferred_index: int = 0
     probe_count: int = 8
-    width: int = 1280
-    height: int = 720
-    fps: int = 30
+    width: int = 640
+    height: int = 360
+    fps: int = 60
+    buffer_size: int = 1
     failure_limit: int = 10
+    threaded_capture: bool = True
+    rotate_180: bool = True
+    flip_horizontal: bool = False
+    flip_vertical: bool = False
 
 
 @dataclass(slots=True)
 class TrackingSettings:
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
+    max_tracking_fps: float = 15.0
     smoothing_alpha_position: float = 0.22
     smoothing_alpha_rotation: float = 0.18
     lost_hold_seconds: float = 0.35
