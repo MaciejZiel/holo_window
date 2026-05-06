@@ -142,6 +142,7 @@ class HoloWindowRenderer(ShowBase):
         self.accept("u", self._toggle_camera_rotate)
         self.accept("m", self._toggle_camera_mirror)
         self.accept("v", self._toggle_camera_vertical_flip)
+        self.accept("p", self._toggle_off_axis_projection)
         self.accept("1", self.switch_scene, [0])
         self.accept("2", self.switch_scene, [1])
         self.accept("3", self.switch_scene, [2])
@@ -167,10 +168,17 @@ class HoloWindowRenderer(ShowBase):
 
     def _apply_head_tracked_camera(self, state: TrackingState) -> None:
         render = self.settings.render
-        parallax = render.parallax_sensitivity * (1.0 + clamp(state.head_z, -0.6, 0.8) * 0.35)
-        x = state.head_x * render.camera_lateral_range * render.sensitivity_x * parallax
-        z = state.head_y * render.camera_vertical_range * render.sensitivity_y * parallax
-        y = -4.8 + state.head_z * render.camera_depth_range * render.sensitivity_z
+        x_head = self._amplify_head_motion(state.head_x)
+        y_head = self._amplify_head_motion(state.head_y)
+        z_head = self._amplify_head_motion(state.head_z)
+        parallax = render.parallax_sensitivity * (1.0 + clamp(z_head, -0.6, 0.8) * 0.42)
+        x = x_head * render.camera_lateral_range * render.sensitivity_x * parallax
+        z = y_head * render.camera_vertical_range * render.sensitivity_y * parallax
+        if render.off_axis_projection:
+            self._apply_off_axis_camera(state, x, z, z_head)
+            return
+
+        y = -4.8 + z_head * render.camera_depth_range * render.sensitivity_z
         x = clamp(x, -3.8, 3.8)
         y = clamp(y, -6.4, -3.35)
         z = clamp(z, -2.4, 2.4)
@@ -192,6 +200,37 @@ class HoloWindowRenderer(ShowBase):
                 render.max_fov,
             )
             lens.setFov(fov)
+
+    def _apply_off_axis_camera(self, state: TrackingState, eye_x: float, eye_z: float, head_z: float) -> None:
+        render = self.settings.render
+        eye_x = clamp(eye_x, -5.2, 5.2)
+        eye_z = clamp(eye_z, -3.0, 3.0)
+        eye_distance = clamp(
+            render.virtual_eye_distance - head_z * render.camera_depth_range * render.sensitivity_z,
+            render.min_eye_distance,
+            render.max_eye_distance,
+        )
+        screen_y = render.virtual_screen_y
+        self.camera.setPos(eye_x, screen_y - eye_distance, eye_z)
+        self.camera.setHpr(0.0, 0.0, clamp(-state.roll * 0.08 * render.rotation_sensitivity, -2.0, 2.0))
+
+        lens = self.cam.node().getLens()
+        if isinstance(lens, PerspectiveLens):
+            half_w = render.virtual_screen_width / 2.0
+            half_h = render.virtual_screen_height / 2.0
+            ul = Vec3(-half_w - eye_x, eye_distance, half_h - eye_z)
+            ur = Vec3(half_w - eye_x, eye_distance, half_h - eye_z)
+            ll = Vec3(-half_w - eye_x, eye_distance, -half_h - eye_z)
+            lr = Vec3(half_w - eye_x, eye_distance, -half_h - eye_z)
+            lens.setFrustumFromCorners(ul, ur, ll, lr, Lens.FC_off_axis | Lens.FC_aspect_ratio)
+            lens.setNearFar(0.08, 75.0)
+
+    def _amplify_head_motion(self, value: float) -> float:
+        exponent = self.settings.render.off_axis_motion_exponent
+        value = clamp(value, -1.4, 1.4)
+        if abs(value) < 0.002:
+            return 0.0
+        return (1.0 if value > 0 else -1.0) * (abs(value) ** exponent)
 
     def _update_overlay(self) -> None:
         if not self.overlay.visible:
@@ -245,10 +284,19 @@ class HoloWindowRenderer(ShowBase):
 
     def _adjust_parallax(self, delta: float) -> None:
         render = self.settings.render
-        render.parallax_sensitivity = clamp(render.parallax_sensitivity + delta, 0.25, 2.5)
+        render.parallax_sensitivity = clamp(render.parallax_sensitivity + delta, 0.25, 4.0)
 
     def _adjust_smoothing(self, delta: float) -> None:
         self.runtime.smoother.adjust_smoothing(delta)
+
+    def _toggle_off_axis_projection(self) -> None:
+        render = self.settings.render
+        render.off_axis_projection = not render.off_axis_projection
+        lens = self.cam.node().getLens()
+        if isinstance(lens, PerspectiveLens):
+            lens.setFilmOffset(0.0, 0.0)
+            lens.setFov(render.base_fov)
+            lens.setNearFar(0.08, 75.0)
 
 
 class HoloWindowRuntime:

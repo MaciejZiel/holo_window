@@ -76,10 +76,10 @@ class DebugOverlay:
             f"Head: x {state.head_x:+0.2f}  y {state.head_y:+0.2f}  z {state.head_z:+0.2f}\n"
             f"Pose: yaw {state.yaw:+0.1f}  pitch {state.pitch:+0.1f}  roll {state.roll:+0.1f}\n"
             f"Smoothing: {snapshot.smoothing:0.2f}\n"
-            f"Parallax: {snapshot.parallax:0.2f}\n"
+            f"Parallax: {snapshot.parallax:0.2f}  off-axis: {'on' if settings.render.off_axis_projection else 'off'}\n"
             f"Scene: {snapshot.scene_name}\n"
             f"Calibrated: {calibrated}\n"
-            f"Controls: C calibrate | D debug | U rotate cam | TAB camera | ESC exit"
+            f"Controls: C calibrate | P off-axis | +/- parallax | U rotate cam | ESC exit"
         )
         self._text.setText(text)
 

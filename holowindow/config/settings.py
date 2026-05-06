@@ -31,8 +31,8 @@ class TrackingSettings:
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
     max_tracking_fps: float = 15.0
-    smoothing_alpha_position: float = 0.22
-    smoothing_alpha_rotation: float = 0.18
+    smoothing_alpha_position: float = 0.36
+    smoothing_alpha_rotation: float = 0.28
     lost_hold_seconds: float = 0.35
     return_to_neutral_alpha: float = 0.045
     max_head_x: float = 1.4
@@ -51,14 +51,22 @@ class TrackingSettings:
 
 @dataclass(slots=True)
 class RenderSettings:
-    parallax_sensitivity: float = 1.0
+    parallax_sensitivity: float = 1.6
     sensitivity_x: float = 1.0
     sensitivity_y: float = 1.0
     sensitivity_z: float = 1.0
     rotation_sensitivity: float = 0.45
-    camera_lateral_range: float = 1.85
-    camera_vertical_range: float = 1.12
-    camera_depth_range: float = 1.25
+    camera_lateral_range: float = 3.2
+    camera_vertical_range: float = 2.05
+    camera_depth_range: float = 1.75
+    off_axis_projection: bool = True
+    off_axis_motion_exponent: float = 0.62
+    virtual_screen_width: float = 11.6
+    virtual_screen_height: float = 6.5
+    virtual_screen_y: float = 2.1
+    virtual_eye_distance: float = 5.2
+    min_eye_distance: float = 2.6
+    max_eye_distance: float = 8.4
     base_fov: float = 64.0
     min_fov: float = 48.0
     max_fov: float = 76.0

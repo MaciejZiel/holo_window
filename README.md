@@ -49,6 +49,7 @@ export HOLOWINDOW_FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
 - `R`: reset tracking and calibration
 - `F`: toggle fullscreen
 - `+` / `-`: increase or decrease parallax sensitivity
+- `P`: toggle off-axis projection
 - `[` / `]`: decrease or increase smoothing
 - `TAB`: switch to the next detected camera device
 - `U`: rotate the camera image 180 degrees
@@ -63,6 +64,8 @@ At startup HoloWindow probes multiple OpenCV camera indices and opens the prefer
 The camera pipeline uses a low-latency background reader and keeps only the newest frame so old buffered frames do not add delay. The default capture size is `640x360` at up to `60 FPS`, with face tracking capped separately to keep rendering responsive.
 
 If your camera is mounted upside down, press `U`. If the movement feels reversed, use `M` or `V` and recalibrate with `C`.
+
+The renderer uses off-axis projection by default. That means the virtual screen plane stays fixed while the projection frustum shifts with your head position, which gives a stronger “looking through the display” effect than simply rotating or panning the camera. Use `+` if the motion still feels too subtle.
 
 ## Tracking And Glasses
 
